@@ -50,9 +50,9 @@ const char* WIFI_SSID = "xxxx";
 const char* WIFI_PASS = "xxxx";
 
 // Losant credentials.
-const char* LOSANT_DEVICE_ID = "5e2e1088a490d00006beca85"; //5e2e1088a490d00006beca85
-const char* LOSANT_ACCESS_KEY = "fafe0226-f43f-4331-91e3-ec0c5b4512f3";
-const char* LOSANT_ACCESS_SECRET = "7d79d64f4ee8f13ad8ba3d7ac6ccfc2f532b277841e839dd807f3ef6be0a2bf5";
+const char* LOSANT_DEVICE_ID = "xxxxxx";
+const char* LOSANT_ACCESS_KEY = "xxxxxxxx";
+const char* LOSANT_ACCESS_SECRET = "xxxxxxxx";
 
 WiFiClientSecure wifiClient;
 
