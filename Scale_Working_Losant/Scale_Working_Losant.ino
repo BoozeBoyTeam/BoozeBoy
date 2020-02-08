@@ -46,8 +46,8 @@ void connect(void);
 void reportWeight(float);
 
 // WiFi credentials.
-const char* WIFI_SSID = "OnePlus 7 Pro";
-const char* WIFI_PASS = "Passport2015";
+const char* WIFI_SSID = "xxxx";
+const char* WIFI_PASS = "xxxx";
 
 // Losant credentials.
 const char* LOSANT_DEVICE_ID = "5e2e1088a490d00006beca85"; //5e2e1088a490d00006beca85
