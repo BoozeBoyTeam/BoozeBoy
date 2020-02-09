@@ -3,7 +3,7 @@
  By: Nathan Seidle
  SparkFun Electronics
  Date: November 19th, 2014
- 
+ //This is a comment
  License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
  
  This is the calibration sketch. Use it to determine the calibration_factor that the main example uses. It also
