@@ -6,7 +6,7 @@
 #define CLK 12
 
 #define RANGE_BOUND 100000.0
-#define VALIDATION_THRESHOLD 50
+#define VALIDATION_THRESHOLD 10 //arbitruary 
 
 const char* SENSOR_ID[] = {"S1", "S2", "S3","S4","S5"};
 const int DOUT[RAIL_SIZE] = {14, 27, 26, 25, 33};
@@ -74,10 +74,15 @@ void setup()
   
   connect(); 
 
-  speedrail_calibration(); //recalibration occurs at push of button
+  if((speedrail never used before) || (user wants to recalibrate))
+  {
+    speedrail_calibration(); //recalibration occurs at push of button
+  }
+  else
+  {
+    speedrail_init(); //does not tare
+  }
   
-  speedrail_init();
-
   Serial.println("Readings:");
 
 }
