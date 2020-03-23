@@ -1,23 +1,4 @@
 /*
- Example using the SparkFun HX711 breakout board with a scale
- By: Nathan Seidle
- SparkFun Electronics
- Date: November 19th, 2014
- License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
-
- This example demonstrates basic scale output. See the calibration sketch to get the calibration_factor for your
- specific load cell setup.
-
- This example code uses bogde's excellent library:"https://github.com/bogde/HX711"
- bogde's library is released under a GNU GENERAL PUBLIC LICENSE
-
- The HX711 does one thing well: read load cells. The breakout board is compatible with any wheat-stone bridge
- based load cell which should allow a user to measure everything from a few grams to tens of tons.
- Arduino pin 2 -> HX711 CLK
- 3 -> DAT
- 5V -> VCC
- GND -> GND
-
  The HX711 board can be powered from 2.7V to 5V so the Arduino 5V power should be fine.
 
  ---------------------------------------------------------------------------------------------------------------------
@@ -36,13 +17,15 @@
 #include <Losant.h>
 
 #include "HX711.h"
+#include "Authentication.h"
+
 #define RAIL_SIZE 5
 #define calibration_factor 396.9192505 //1M value was obtained using the SparkFun_HX711_Calibration sketch
 #define CLK 12
 #define DOUT 14 
 
 
-const char* SENSOR_ID[] = {"S1", "S2", "S3","S4","S5"}
+const char* SENSOR_ID[] = {"S1", "S2", "S3","S4","S5"};
 const int DOUT2[RAIL_SIZE]  {14, 27, 26, 25, 33};
 const float CALFACTOR[RAIL_SIZE] ={396.9192505, 396.9192505, 396.9192505, 396.9192505, 396.9192505};
 
@@ -52,15 +35,17 @@ void connect();
 void reportWeight(float weight, int tag = 0);
 void reportWeight(float weight[]);
 void scale_start();
-void read_values
-// WiFi credentials.
-const char* WIFI_SSID = "xxxx";
-const char* WIFI_PASS = "xxxx";
+void read_values();
+
+/* WiFi credentials. No longer displayed here. Create seperate header file.
+const char* WIFI_SSID = "XXX";
+const char* WIFI_PASS = "XXX";
 
 // Losant credentials.
-const char* LOSANT_DEVICE_ID = "xxxx"; 
-const char* LOSANT_ACCESS_KEY = "xxxx";
-const char* LOSANT_ACCESS_SECRET = "xxxx";
+const char* LOSANT_DEVICE_ID = "XXX";
+const char* LOSANT_ACCESS_KEY = "XXX";
+const char* LOSANT_ACCESS_SECRET = "XXX";
+*/
 
 WiFiClientSecure wifiClient;
 

@@ -15,7 +15,7 @@
   #define RANGE_BOUND 100000.0
   #define VALIDATION_THRESHOLD 50
   
-  #define DOUT  14
+  #define DOUT  33 
   #define CLK  12
   
   HX711 scale;
@@ -63,7 +63,7 @@
   {
     scale.set_scale(calibration_factor); //Adjust to this calibration factor
     
-    set_calibration_factor(find_calibration_factor(20,0)); // 113 is the known weight and 0 is the decimal places wanted for acccuracy  
+    set_calibration_factor(find_calibration_factor(1000,0)); // 113 is the known weight and 0 is the decimal places wanted for acccuracy  
     
 
     Serial.println("Calibration complete.");

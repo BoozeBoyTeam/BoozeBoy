@@ -1,6 +1,7 @@
 #include <WiFiClientSecure.h>
 #include <Losant.h>
 #include "HX711.h"
+#include "Authentication.h"
 
 #define RAIL_SIZE 5
 #define CLK 12
@@ -8,7 +9,7 @@
 #define RANGE_BOUND 100000.0
 #define VALIDATION_THRESHOLD 10 //arbitruary 
 
-const char* SENSOR_ID[] = {"S1", "S2", "S3","S4","S5"};
+const char* SENSOR_ID[] = {"S1", "S2", "S3", "S4", "S5"};
 const int DOUT[RAIL_SIZE] = {14, 27, 26, 25, 33};
 
 /******************************** Default Calibration **************************/
@@ -31,7 +32,7 @@ float zOffset[RAIL_SIZE] = {0,         //sensor 1
 void speedrail_calibration(void);
 
 void set_calibration_factor(float calibrationFactor);
-float find_calibration_factor(float knownMeasurement, int decimalPlaces);
+float find_calibration_factor(float knownMeasurement);
 float get_calibration_factor(void);  
 /*******************************************************************************/
 
@@ -46,18 +47,20 @@ void speedrail_init(void);
 void read_values(void);
 /*******************************************************************************/
 
-// WiFi credentials.
-const char* WIFI_SSID = "xxxx";
-const char* WIFI_PASS = "xxxx";
+/* WiFi credentials. No longer displayed here. Create seperate header file.
+const char* WIFI_SSID = "XXX";
+const char* WIFI_PASS = "XXX";
 
 // Losant credentials.
-const char* LOSANT_DEVICE_ID = "xxxx"; 
-const char* LOSANT_ACCESS_KEY = "xxxx";
-const char* LOSANT_ACCESS_SECRET = "xxxx";
+const char* LOSANT_DEVICE_ID = "XXX";
+const char* LOSANT_ACCESS_KEY = "XXX";
+const char* LOSANT_ACCESS_SECRET = "XXX";
+*/
 
 WiFiClientSecure wifiClient;
 
 LosantDevice device(LOSANT_DEVICE_ID);
+
 HX711 speedrail[5];
 
 int timeSinceLastRead = 0;
@@ -70,7 +73,7 @@ void setup()
 { 
   Serial.begin(115200); 
   delay(2000); //gives 
-  Serial.println("HX711 scale demo");
+  Serial.println("BoozeBoy: Speedrail Demo");
   
   connect(); 
 
@@ -217,7 +220,7 @@ void reportWeight(float weight, int tag = 0) // tag default  to 0 for testing
 /** ########IN PROGRESS##########
  * 
  */ 
-void scale_calibration()
+void speedrail_calibration()
 {
     Serial.println("Beginning Speedrail Calibration...");
     delay(1000);
@@ -226,7 +229,7 @@ void scale_calibration()
     Serial.println("Taring speedrail now.");
     delay(1000);
 
-    scale_start();
+    speedrail_init();
     
     long zero_factor = speedrail[0].read_average(); //Get a baseline reading
     Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
@@ -240,7 +243,7 @@ void scale_calibration()
 
     while (condition)
     {
-      speedrail[]0.set_scale(calibration_factor); //Adjust to this calibration factor
+      speedrail[0].set_scale(calibration_factor); //Adjust to this calibration factor
       
       set_calibration_factor(find_calibration_factor(20,0)); // 113 is the known weight and 0 is the decimal places wanted for acccuracy  
       
@@ -256,10 +259,10 @@ void set_calibration_factor(float calibrationFactor)
   calibration_factor = calibrationFactor;
 }
   
-float find_calibration_factor(float knownMeasurement, int decimalPlaces)
+float find_calibration_factor(float knownMeasurement)
 {
     int counter = 0;
-    float decimalPlacesLinear = pow(10, (-1 * (decimalPlaces + 1)));
+    //float decimalPlacesLinear = pow(10, (-1 * (decimalPlaces + 1)));
     float scaleOutput = 0.00;
     float equalityError = 0.00;
     
@@ -267,8 +270,8 @@ float find_calibration_factor(float knownMeasurement, int decimalPlaces)
     {
     speedrail[0].set_scale(calibration_factor); //Adjust to this calibration factor
     
-    scaleOutput = fabs(speedrail[0].get_units());
-    equalityError = fabs(scaleOutput - knownMeasurement);
+    scaleOutput = speedrail[0].get_units();
+    equalityError = abs(scaleOutput - knownMeasurement);
 
     /**********************************************************DEBUGGING************************************************************/
     Serial.print("Reading: ");
@@ -314,7 +317,7 @@ void speedrail_init()
   {
     speedrail[i].begin(DOUT[i],CLK);
     speedrail[i].set_scale(CALFACTOR[i]);
-    speedrail[i].tare();
+    //speedrail[i].tare();
   }
 }
 /** ########IN PROGRESS##########
