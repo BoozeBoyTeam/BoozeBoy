@@ -6,7 +6,11 @@
 //Use your own compatible ssid, passwords, keys, etc. separately via header file 
 #include "Authentication.h"
 
-#define calibration_factor 396.9192505 
+#define calibration_factor_s1 366.5924072 
+#define calibration_factor_s2 381.8333130 
+#define calibration_factor_s3 382.7804565 
+#define calibration_factor_s4 396.9192505 //severly inaccurate
+#define calibration_factor_s5 390.3388672 
 
 #define D1  14
 #define D2  26
@@ -52,11 +56,11 @@ void setup() {
           
    //delay(10000); //esp8266 serial connection delay
    
-  s1.set_scale(calibration_factor); 
-    s2.set_scale(calibration_factor);
-      s3.set_scale(calibration_factor);
-        s4.set_scale(calibration_factor);
-          s5.set_scale(calibration_factor);
+  s1.set_scale(calibration_factor_s1); 
+    s2.set_scale(calibration_factor_s2);
+      s3.set_scale(calibration_factor_s3);
+        s4.set_scale(calibration_factor_s4);
+          s5.set_scale(calibration_factor_s5);
    
    //delay(10000); //esp8266 serial connection delay
    
