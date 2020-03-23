@@ -1,41 +1,12 @@
 /*
- Example using the SparkFun HX711 breakout board with a scale
- By: Nathan Seidle
- SparkFun Electronics
- Date: November 19th, 2014
- //This is a comment from Me, the best programmer
- License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
- 
- This is the calibration sketch. Use it to determine the calibration_factor that the main example uses. It also
- outputs the zero_factor useful for projects that have a permanent mass on the scale in between power cycles.
- 
- Setup your scale and start the sketch WITHOUT a weight on the scale
- 
- Use this calibration_factor on the example sketch
- 
- This example assumes pounds (lbs). If you prefer kilograms, change the Serial.print(" lbs"); line to kg. The
- calibration factor will be significantly different but it will be linearly related to lbs (1 lbs = 0.453592 kg).
- 
- This example code uses bogde's excellent library:"https://github.com/bogde/HX711"
- bogde's library is released under a GNU GENERAL PUBLIC LICENSE
-
- Arduino pin 2 -> HX711 CLK
- 3 -> DOUT
+ NodeMCU-32S
+ ESP32 pin 12 -> HX711 CLK
+ ESP32 pin 14 -> DOUT
  5V -> VCC
  GND -> GND
-
- Most any pin on the Arduino Uno will be compatible with DOUT/CLK.
-
- The HX711 board can be powered from 2.7V to 5V so the Arduino 5V power should be fine.
- 
----------------------------------------------------------------------------------------------------------------------
-
- Modified By: Wally Proenza
- Booze Boy Prototype
- Date: December 19th, 2019
-
 */
-//branch test b
+
+
 
   #include "HX711.h"
   #include <math.h>
@@ -44,7 +15,7 @@
   #define RANGE_BOUND 100000.0
   #define VALIDATION_THRESHOLD 50
   
-  #define DOUT  14
+  #define DOUT  33 
   #define CLK  12
   
   HX711 scale;
@@ -92,7 +63,7 @@
   {
     scale.set_scale(calibration_factor); //Adjust to this calibration factor
     
-    set_calibration_factor(find_calibration_factor(20,0)); // 113 is the known weight and 0 is the decimal places wanted for acccuracy  
+    set_calibration_factor(find_calibration_factor(1000,0)); // 113 is the known weight and 0 is the decimal places wanted for acccuracy  
     
 
     Serial.println("Calibration complete.");

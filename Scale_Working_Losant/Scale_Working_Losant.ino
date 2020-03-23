@@ -1,23 +1,4 @@
 /*
- Example using the SparkFun HX711 breakout board with a scale
- By: Nathan Seidle
- SparkFun Electronics
- Date: November 19th, 2014
- License: This code is public domain but you buy me a beer if you use this and we meet someday (Beerware license).
-
- This example demonstrates basic scale output. See the calibration sketch to get the calibration_factor for your
- specific load cell setup.
-
- This example code uses bogde's excellent library:"https://github.com/bogde/HX711"
- bogde's library is released under a GNU GENERAL PUBLIC LICENSE
-
- The HX711 does one thing well: read load cells. The breakout board is compatible with any wheat-stone bridge
- based load cell which should allow a user to measure everything from a few grams to tens of tons.
- Arduino pin 2 -> HX711 CLK
- 3 -> DAT
- 5V -> VCC
- GND -> GND
-
  The HX711 board can be powered from 2.7V to 5V so the Arduino 5V power should be fine.
 
  ---------------------------------------------------------------------------------------------------------------------
@@ -36,37 +17,60 @@
 #include <Losant.h>
 
 #include "HX711.h"
+#include "Authentication.h"
 
+#define RAIL_SIZE 5
 #define calibration_factor 396.9192505 //1M value was obtained using the SparkFun_HX711_Calibration sketch
+#define CLK 12
+#define DOUT 14 
 
-#define DOUT  14
-#define CLK   12
 
-void connect(void);
-void reportWeight(float);
+const char* SENSOR_ID[] = {"S1", "S2", "S3","S4","S5"};
+const int DOUT2[RAIL_SIZE]  {14, 27, 26, 25, 33};
+const float CALFACTOR[RAIL_SIZE] ={396.9192505, 396.9192505, 396.9192505, 396.9192505, 396.9192505};
 
-// WiFi credentials.
-const char* WIFI_SSID = "xxxx";
-const char* WIFI_PASS = "xxxx";
+
+
+void connect();
+void reportWeight(float weight, int tag = 0);
+void reportWeight(float weight[]);
+void scale_start();
+void read_values();
+
+/* WiFi credentials. No longer displayed here. Create seperate header file.
+const char* WIFI_SSID = "XXX";
+const char* WIFI_PASS = "XXX";
 
 // Losant credentials.
-const char* LOSANT_DEVICE_ID = "xxxxxx";
-const char* LOSANT_ACCESS_KEY = "xxxxxxxx";
-const char* LOSANT_ACCESS_SECRET = "xxxxxxxx";
+const char* LOSANT_DEVICE_ID = "XXX";
+const char* LOSANT_ACCESS_KEY = "XXX";
+const char* LOSANT_ACCESS_SECRET = "XXX";
+*/
 
 WiFiClientSecure wifiClient;
 
 LosantDevice device(LOSANT_DEVICE_ID);
-
+  
 HX711 scale;
+HX711 scale2[5];
 
+int timeSinceLastRead = 0;
+float weightSum = 0.0;
+int weightCount = 0;
+
+/**
+ * SETUP FUNCTION
+ */
 void setup() {
   Serial.begin(115200); //9600
    //delay(5000); //esp8266 serial connection delay
       delay(2000);
       connect(); 
   Serial.println("HX711 scale demo");
-
+  
+  scale_start();
+  
+  
   scale.begin(DOUT, CLK);
    //delay(10000); //esp8266 serial connection delay
   scale.set_scale(calibration_factor); //This value is obtained by using the SparkFun_HX711_Calibration sketch
@@ -75,12 +79,12 @@ void setup() {
    //delay(10000); //esp8266 serial connection delay
 
   Serial.println("Readings:");
+
 }
 
-    int timeSinceLastRead = 0;
-    float weightSum = 0.0;
-    int weightCount = 0;
-
+/**
+ * LOOP FUNCTION
+ */
 void loop() {
   bool toReconnect = false;
 
@@ -144,6 +148,12 @@ void loop() {
 */
 }
 
+/**
+ * WIFI CONNECT FUNCTION
+ * CONNECTS TO GIVEN SSID AND PASSWORD
+ * REPORTS IN SERIAL MONTIOR CONNECTION STATUS
+ */
+
 void connect() {
 
   // Connect to Wifi.
@@ -185,9 +195,42 @@ void connect() {
   Serial.println("This device is now ready for use!");
 }
 
-void reportWeight(float weight) {
+
+/** FUNCTION TO CREATE JSON AND PUSH TO LOSANT 
+ *  WEIGHT = CURRENT WEIGHT VALUE OF A LOAD cell
+ *  TAG = LOAD CELL LOCATION IN THE RAIL
+ */
+void reportWeight(float weight, int tag = 0){// tag default  to 0 for testing 
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   root["weight"] = weight;
+  root["tag"] = tag;
   device.sendState(root);
+}
+
+
+/** ########IN PROGRESS##########
+ * 
+ */ 
+void scale_start(){
+   
+  for(int i = 0; i < RAIL_SIZE; i++){
+    scale2[i].begin(DOUT2[i],CLK);
+    scale2[i].set_scale(CALFACTOR[i]);
+    scale2[i].tare();
+  }
+}
+/** ########IN PROGRESS##########
+ * report an array of weights
+ */
+void reportWeight(float weight[]){
+
+}
+/** ########IN PROGRESS##########
+ *  read an array of values
+ */
+void read_values(){
+  for(int i = 0; i<RAIL_SIZE;i++){
+
+  }
 }
