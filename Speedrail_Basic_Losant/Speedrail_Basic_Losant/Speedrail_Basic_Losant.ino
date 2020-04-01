@@ -4,7 +4,7 @@
 #include "HX711.h"
 
 //Use your own compatible ssid, passwords, keys, etc. separately via header file 
-#include "Authentication.h"
+#include "FinalAuthentication.h"
 
 #define calibration_factor_s1 366.5924072 
 #define calibration_factor_s2 381.8333130 
@@ -230,11 +230,11 @@ void connect() {
 void reportWeight(float weightS1, float weightS2, float weightS3, float weightS4, float weightS5) 
 {
 
-  String speedrail =  "{\"Bottle_1\" : \"" + (String)weightS1 
-                      + "\", \"Bottle_2\" : \"" + (String)weightS2
-                      + "\", \"Bottle_3\" : \"" + (String)weightS3 
-                      + "\", \"Bottle_4\" : \"" + (String)weightS4
-                      + "\", \"Bottle_5\" : \"" + (String)weightS5 
+  String speedrail =  "{\"S1\" : \"" + (String)weightS1 
+                      + "\", \"S2\" : \"" + (String)weightS2
+                      + "\", \"S3\" : \"" + (String)weightS3 
+                      + "\", \"S4\" : \"" + (String)weightS4
+                      + "\", \"S5\" : \"" + (String)weightS5 
                       + "\"}";  
                       
   StaticJsonBuffer<200> jsonBuffer;
