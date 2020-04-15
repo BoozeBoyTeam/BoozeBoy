@@ -1,15 +1,20 @@
 #include <WiFiClientSecure.h>
 #include <Losant.h>
 
-#include "HX711.h"
-
 //Use your own compatible ssid, passwords, keys, etc. separately via header file 
 #include "FinalAuthentication.h"
+#include "HX711.h"
+
+#define INIT_DELAY 2000
+#define REPORT_INTERVAL 2000
+#define SPEED_RAIL_SIZE 5
+#define MIN_READING_THRESH 10 //grams less than this will be read as zero
+#define NOISE_SPIKE_THRESH 100 //any increase above this indicates noise spike
 
 #define calibration_factor_s1 366.5924072 
 #define calibration_factor_s2 381.8333130 
 #define calibration_factor_s3 382.7804565 
-#define calibration_factor_s4 396.9192505 //severly inaccurate
+#define calibration_factor_s4 396.9192505 
 #define calibration_factor_s5 390.3388672 
 
 #define D1  14
@@ -20,170 +25,127 @@
 
 #define CLK   12
 
+//unsigned long time;
+
 void connect(void);
-void reportWeight(float, float, float, float, float);
-
-/* WiFi credentials. No longer displayed here. Create seperate header file.
-const char* WIFI_SSID = "XXX";
-const char* WIFI_PASS = "XXX";
-
-// Losant credentials.
-const char* LOSANT_DEVICE_ID = "XXX";
-const char* LOSANT_ACCESS_KEY = "XXX";
-const char* LOSANT_ACCESS_SECRET = "XXX";
-*/
+void reportWeight(String [], float []);
+boolean noiseSpike(void);
 
 WiFiClientSecure wifiClient;
-
 LosantDevice device(LOSANT_DEVICE_ID);
 
-HX711 s1, s2, s3, s4, s5;
+HX711 speedrail[SPEED_RAIL_SIZE];
+String sensorNames[SPEED_RAIL_SIZE] = {"S1","S2","S3","S4","S5"};
+int dout[SPEED_RAIL_SIZE] = {D1, D2, D3, D4, D5};
+float calFactor[SPEED_RAIL_SIZE] = {calibration_factor_s1, calibration_factor_s2,
+calibration_factor_s3, calibration_factor_s4, calibration_factor_s5}; 
 
-void setup() {
-  
-  Serial.begin(115200); //9600
-   //delay(5000); //esp8266 serial connection delay
-      delay(2000);
-      connect(); 
- 
+void setup() 
+{
+  Serial.begin(115200);
+  delay(INIT_DELAY);
+  connect(); 
   Serial.println("HX711 scale demo");
-
-  s1.begin(D1, CLK);
-    s2.begin(D2, CLK);
-      s3.begin(D3, CLK);
-        s4.begin(D4, CLK);
-          s5.begin(D5, CLK);
-          
-   //delay(10000); //esp8266 serial connection delay
-   
-  s1.set_scale(calibration_factor_s1); 
-    s2.set_scale(calibration_factor_s2);
-      s3.set_scale(calibration_factor_s3);
-        s4.set_scale(calibration_factor_s4);
-          s5.set_scale(calibration_factor_s5);
-   
-   //delay(10000); //esp8266 serial connection delay
-   
-  s1.tare(); //Assuming there is no weight on the scale at start up, reset the scale to 0
-    s2.tare();
-      s3.tare();
-        s4.tare();
-          s5.tare();
-          
-   //delay(10000); //esp8266 serial connection delay
-
-  Serial.println("Readings:");
+  for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+  {
+    speedrail[i].begin(dout[i], CLK);
+    speedrail[i].set_scale(calFactor[i]); 
+    speedrail[i].tare();
+  }
 }
 
-    int timeSinceLastRead = 0;
-    
-    float weightSumS1 = 0.0;
-      float weightSumS2 = 0.0;
-        float weightSumS3 = 0.0;
-          float weightSumS4 = 0.0;
-            float weightSumS5 = 0.0;
-            
-    int weightCount = 0;
+int timeSinceLastRead = 0;
 
-void loop() {
+float readingsSum[SPEED_RAIL_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0};
+int readingsCounter[SPEED_RAIL_SIZE] = {0, 0, 0, 0, 0};
+float readingsAverage [SPEED_RAIL_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0};
+
+void loop() 
+{
   bool toReconnect = false;
 
-  if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) 
+  {
     Serial.println("Disconnected from WiFi");
     toReconnect = true;
   }
 
-  if (!device.connected()) {
+  if (!device.connected()) 
+  {
     Serial.println("Disconnected from MQTT");
     Serial.println(device.mqttClient.state());
     toReconnect = true;
   }
 
-  if (toReconnect) {
+  if (toReconnect) 
+  {
     connect();
   }
 
   device.loop();
 
-  weightSumS1 += (float)(abs(s1.get_units()));
-    weightSumS2 += (float)(abs(s2.get_units()));
-      weightSumS3 += (float)(abs(s3.get_units()));
-        weightSumS4 += (float)(abs(s4.get_units()));
-          weightSumS5 += (float)(abs(s5.get_units()));
-      
-  weightCount++;
-   //to report every 15 seconds
-   if (timeSinceLastRead > 2000) {
+ // float prev = 0.0;
+  float current = 0.0;
+  for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+  {
+     current = (float)abs(speedrail[i].get_units());
+     readingsSum[i] += current;
+     readingsCounter[i]++;
+    /*
+      current = (float)abs(speedrail[i].get_units());
+      if(!noiseSpike(prev, current))
+      {
+        Serial.println(current);
+        Serial.println(prev);
+        readingsSum[i] += current;
+        readingsCounter[i]++;
+        prev = current;
+      }
+      else
+      {
+        i--;
+      }
+      Serial.println("loop 1");*/
+  }  
+  Serial.println("out of loop 1");
+  if (timeSinceLastRead > REPORT_INTERVAL)
+  {
     // Take the average reading over the last 15 seconds.
-    float averageWeightS1 = weightSumS1/((float)weightCount);
-      float averageWeightS2 = weightSumS2/((float)weightCount);
-        float averageWeightS3 = weightSumS3/((float)weightCount);
-          float averageWeightS4 = weightSumS4/((float)weightCount);
-            float averageWeightS5 = weightSumS5/((float)weightCount);
 
-    // The tmp36 documentation requires the -0.5 offset, but during
-    // testing while attached to the Feather, all tmp36 sensors
-    // required a -0.52 offset for better accuracy.
+      for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+      {
+        readingsAverage[i] = readingsSum[i]/((float)readingsCounter[i]);
 
+        //Clear empty sensor noise floor
+        if (readingsAverage[i] < MIN_READING_THRESH)
+        {
+          readingsAverage[i] = 0.0;
+        }
 
-    Serial.print("Scale 1: ");
-    Serial.print(s1.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-
-    Serial.print("Scale 2: ");
-    Serial.print(s2.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-
-    Serial.print("Scale 3: ");
-    Serial.print(s3.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-
-    Serial.print("Scale 4: ");
-    Serial.print(s4.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-
-    Serial.print("Scale 5: ");
-    Serial.print(s5.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-
-    reportWeight(averageWeightS1, averageWeightS2, averageWeightS3, averageWeightS4, averageWeightS5);
-     /* reportWeight(averageWeightS2);
-        reportWeight(averageWeightS3);
-          reportWeight(averageWeightS4);
-            reportWeight(averageWeightS5); */
-
-    timeSinceLastRead = 0;
+        Serial.println("in of loop 2");
+      }
     
-    weightSumS1 = 0.0;
-      weightSumS2 = 0.0;
-          weightSumS3 = 0.0;
-              weightSumS4 = 0.0;
-                  weightSumS5 = 0.0;
-    
-    weightCount = 0;
-  }
+      // real-time Debugging
+      for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+      {       
+      Serial.print(sensorNames[i] + ": ");
+      Serial.print(speedrail[i].get_units(), 3); //scale.get_units() returns a float
+      Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
+      Serial.println();
+      }
   
-/*testing
- Serial.print("Reading: ");
-    Serial.print(scale.get_units(), 3); //scale.get_units() returns a float
-    Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-    Serial.println();
-*/
-    
+      reportWeight(sensorNames , readingsAverage);
+      
+     for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+     {
+        readingsSum[i] = 0.0;
+        readingsCounter[i] = 0; 
+     }
+     timeSinceLastRead = 0;
+  }
+  Serial.println("skipped loop 2");  
   delay(100);
   timeSinceLastRead += 100;
-  
-/*
-  Serial.print("Reading: ");
-  Serial.print(scale.get_units(), 3); //scale.get_units() returns a float
-  Serial.print(" grams"); //You can change this to kg but you'll need to refactor the calibration_factor
-  Serial.println();
-*/
 }
 
 void connect() {
@@ -217,48 +179,44 @@ void connect() {
     Serial.println(device.mqttClient.state()); // HERE
     Serial.print(".");
 }
-/*
-  while (!device.connected()) {
-    delay(500);
-    Serial.print(".");
-  }
-*/
   Serial.println("Connected!");
   Serial.println("This device is now ready for use!");
 }
 
-void reportWeight(float weightS1, float weightS2, float weightS3, float weightS4, float weightS5) 
+void reportWeight(String * namesOfSensors, float * averageDataReadings) 
 {
-
-  String speedrail =  "{\"S1\" : \"" + (String)weightS1 
-                      + "\", \"S2\" : \"" + (String)weightS2
-                      + "\", \"S3\" : \"" + (String)weightS3 
-                      + "\", \"S4\" : \"" + (String)weightS4
-                      + "\", \"S5\" : \"" + (String)weightS5 
-                      + "\"}";  
-                      
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(speedrail);
+ String speedrailPayload; 
+  for(int i = 0; i < SPEED_RAIL_SIZE; i++)
+  {
+    if(i == 0)
+    {
+      speedrailPayload += "{\"" + namesOfSensors[i] + "\": \"" + (String)averageDataReadings[i];
+    }
+    
+    else if(i < SPEED_RAIL_SIZE - 1)
+    {
+      speedrailPayload += "\", \"" +namesOfSensors[i] + "\" : \"" + (String)averageDataReadings[i];
+    }
   
-  device.sendState(root);
-  
-  //for debugging only
-  Serial.println(speedrail);
+    else
+    {
+      speedrailPayload += "\", \"" +namesOfSensors[i] + "\" : \"" + (String)averageDataReadings[i] + "\"}";
+    }
+  }
+                        
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& root = jsonBuffer.parseObject(speedrailPayload);
+    Serial.println(speedrailPayload);
+    device.sendState(root);
   
 }
 
-/*
-float weight
-*/
-/*
+boolean noiseSpike(float prevReading, float currentReading)
 {
-
-  "bottle_1" : weightS1,
-  "bottle_2" : weightS2,
-  "bottle_3" : weightS3,
-  "bottle_4" : weightS4,
-  "bottle_5" : weightS5,
   
-  
+  if((prevReading != 0) && (currentReading > (prevReading + NOISE_SPIKE_THRESH)))
+  {
+    return true;
+  }
+  return false;
 }
-*/
