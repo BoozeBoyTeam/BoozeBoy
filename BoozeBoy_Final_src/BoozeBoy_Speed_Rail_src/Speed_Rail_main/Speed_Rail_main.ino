@@ -9,7 +9,7 @@
 #define REPORT_INTERVAL 2000
 #define SPEED_RAIL_SIZE 5
 #define MIN_READING_THRESH 10 //grams less than this will be read as zero
-#define NOISE_SPIKE_THRESH 100 //any increase above this indicates noise spike
+#define NOISE_SPIKE_THRESH 50 //any increase above this indicates noise spike
 
 #define calibration_factor_s1 366.5924072 
 #define calibration_factor_s2 381.8333130 
@@ -45,7 +45,7 @@ void setup()
   Serial.begin(115200);
   delay(INIT_DELAY);
   connect(); 
-  Serial.println("HX711 scale demo");
+  Serial.println("BoozeBoy: Smart Speed Rail demo");
   for(int i = 0; i < SPEED_RAIL_SIZE; i++)
   {
     speedrail[i].begin(dout[i], CLK);
@@ -59,6 +59,11 @@ int timeSinceLastRead = 0;
 float readingsSum[SPEED_RAIL_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0};
 int readingsCounter[SPEED_RAIL_SIZE] = {0, 0, 0, 0, 0};
 float readingsAverage [SPEED_RAIL_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0};
+
+
+float prevValueSnapshot[SPEED_RAIL_SIZE] = {0.0, 0.0, 0.0, 0.0, 0.0};
+float current = 0.0;
+boolean noiseFlag = false;
 
 void loop() 
 {
@@ -83,29 +88,36 @@ void loop()
   }
 
   device.loop();
-
- // float prev = 0.0;
-  float current = 0.0;
+  
   for(int i = 0; i < SPEED_RAIL_SIZE; i++)
   {
      current = (float)abs(speedrail[i].get_units());
+     /*
      readingsSum[i] += current;
      readingsCounter[i]++;
-    /*
-      current = (float)abs(speedrail[i].get_units());
-      if(!noiseSpike(prev, current))
+     */
+     
+      if(noiseSpike(prevValueSnapshot[i], current, noiseFlag))
       {
         Serial.println(current);
-        Serial.println(prev);
-        readingsSum[i] += current;
-        readingsCounter[i]++;
-        prev = current;
+        Serial.println(prevValueSnapshot[i]);
+        Serial.println("Noise detected"); 
+        delay(1000); //incase of noise spike wait for the spike to leave
+        timeSinceLastRead += 1000;
+        noiseFlag = true;
+        i--;
       }
       else
       {
-        i--;
+        Serial.println(current);
+        Serial.println(prevValueSnapshot[i]);
+        readingsSum[i] += current;
+        readingsCounter[i]++;
+        prevValueSnapshot[i] = current;
+        noiseFlag = false;
       }
-      Serial.println("loop 1");*/
+      Serial.println("loop 1:" ); 
+      
   }  
   Serial.println("out of loop 1");
   if (timeSinceLastRead > REPORT_INTERVAL)
@@ -211,10 +223,10 @@ void reportWeight(String * namesOfSensors, float * averageDataReadings)
   
 }
 
-boolean noiseSpike(float prevReading, float currentReading)
+boolean noiseSpike(float prevReading, float currentReading, boolean noiseFlagTriggered)
 {
   
-  if((prevReading != 0) && (currentReading > (prevReading + NOISE_SPIKE_THRESH)))
+  if((prevReading > MIN_READING_THRESH) && (currentReading > (prevReading + NOISE_SPIKE_THRESH)) && !(noiseFlagTriggered))
   {
     return true;
   }
