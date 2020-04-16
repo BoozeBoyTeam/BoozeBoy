@@ -6,10 +6,13 @@
 #include "HX711.h"
 
 #define INIT_DELAY 2000
+
 #define REPORT_INTERVAL 2000
+#define REPORT_STANDARD_TIME_INCREMENT 100
 #define SPEED_RAIL_SIZE 5
 #define MIN_READING_THRESH 10 //grams less than this will be read as zero
 #define NOISE_SPIKE_THRESH 50 //any increase above this indicates noise spike
+#define NOISE_DELAY 1000 //incase of noise spike wait for the spike to leave
 
 #define calibration_factor_s1 366.5924072 
 #define calibration_factor_s2 381.8333130 
@@ -92,34 +95,32 @@ void loop()
   for(int i = 0; i < SPEED_RAIL_SIZE; i++)
   {
      current = (float)abs(speedrail[i].get_units());
-     /*
-     readingsSum[i] += current;
-     readingsCounter[i]++;
-     */
      
       if(noiseSpike(prevValueSnapshot[i], current, noiseFlag))
       {
+        /*debugging prints
         Serial.println(current);
         Serial.println(prevValueSnapshot[i]);
+        */
         Serial.println("Noise detected"); 
-        delay(1000); //incase of noise spike wait for the spike to leave
-        timeSinceLastRead += 1000;
+        delay(NOISE_DELAY);
+        timeSinceLastRead += NOISE_DELAY;
         noiseFlag = true;
         i--;
       }
       else
       {
+        /*debugging prints
         Serial.println(current);
         Serial.println(prevValueSnapshot[i]);
+        */
         readingsSum[i] += current;
         readingsCounter[i]++;
         prevValueSnapshot[i] = current;
         noiseFlag = false;
       }
-      Serial.println("loop 1:" ); 
-      
   }  
-  Serial.println("out of loop 1");
+  
   if (timeSinceLastRead > REPORT_INTERVAL)
   {
     // Take the average reading over the last 15 seconds.
@@ -133,11 +134,9 @@ void loop()
         {
           readingsAverage[i] = 0.0;
         }
-
-        Serial.println("in of loop 2");
       }
     
-      // real-time Debugging
+      //real-time check debugging prints
       for(int i = 0; i < SPEED_RAIL_SIZE; i++)
       {       
       Serial.print(sensorNames[i] + ": ");
@@ -154,14 +153,13 @@ void loop()
         readingsCounter[i] = 0; 
      }
      timeSinceLastRead = 0;
-  }
-  Serial.println("skipped loop 2");  
-  delay(100);
-  timeSinceLastRead += 100;
+  } 
+  delay(REPORT_STANDARD_TIME_INCREMENT);
+  timeSinceLastRead += REPORT_STANDARD_TIME_INCREMENT;
 }
 
-void connect() {
-
+void connect() 
+{
   // Connect to Wifi.
   Serial.println();
   Serial.println();
@@ -170,7 +168,8 @@ void connect() {
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED) 
+  {
     delay(1000);
     Serial.print(".");
   }
@@ -185,19 +184,20 @@ void connect() {
 
   device.connectSecure(wifiClient, LOSANT_ACCESS_KEY, LOSANT_ACCESS_SECRET);
 
-//debugging
-  while(!device.connected()) {
+  //debugging
+  while(!device.connected()) 
+  {
     delay(500);
     Serial.println(device.mqttClient.state()); // HERE
     Serial.print(".");
-}
+  }
   Serial.println("Connected!");
   Serial.println("This device is now ready for use!");
 }
 
 void reportWeight(String * namesOfSensors, float * averageDataReadings) 
 {
- String speedrailPayload; 
+  String speedrailPayload; 
   for(int i = 0; i < SPEED_RAIL_SIZE; i++)
   {
     if(i == 0)
@@ -218,6 +218,7 @@ void reportWeight(String * namesOfSensors, float * averageDataReadings)
                         
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(speedrailPayload);
+    //debugging prints
     Serial.println(speedrailPayload);
     device.sendState(root);
   
@@ -226,7 +227,7 @@ void reportWeight(String * namesOfSensors, float * averageDataReadings)
 boolean noiseSpike(float prevReading, float currentReading, boolean noiseFlagTriggered)
 {
   
-  if((prevReading > MIN_READING_THRESH) && (currentReading > (prevReading + NOISE_SPIKE_THRESH)) && !(noiseFlagTriggered))
+  if((prevReading > MIN_READING_THRESH) && (abs(currentReading -  prevReading) > NOISE_SPIKE_THRESH) && !(noiseFlagTriggered))
   {
     return true;
   }
