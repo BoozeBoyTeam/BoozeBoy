@@ -15,7 +15,7 @@
   #define RANGE_BOUND 100000.0
   #define VALIDATION_THRESHOLD 50
   
-  #define DOUT  25 //s4 
+  #define DOUT  33 
   #define CLK  12
   
   HX711 scale;
