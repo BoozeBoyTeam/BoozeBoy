@@ -9,3 +9,5 @@ The BoozeBoy: Smart Speed Rail is an IoT connected inventory system that monitor
 
 [Check Out Our Video](https://youtu.be/MDr-B3YPVlg)
 
+# Note
+Information regarding the hardware used will be provided soon.
