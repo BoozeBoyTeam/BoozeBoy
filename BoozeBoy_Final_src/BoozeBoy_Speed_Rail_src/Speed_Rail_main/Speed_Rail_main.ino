@@ -14,11 +14,11 @@
 #define NOISE_SPIKE_THRESH 50 //any increase above this indicates noise spike
 #define NOISE_DELAY 1000 //incase of noise spike wait for the spike to leave
 
-#define calibration_factor_s1 366.5924072 
-#define calibration_factor_s2 381.8333130 
-#define calibration_factor_s3 382.7804565 
-#define calibration_factor_s4 396.9192505 
-#define calibration_factor_s5 390.3388672 
+#define calibration_factor_s1 367.6414185 //366.5924072 
+#define calibration_factor_s2 381.8397827 //381.8333130 
+#define calibration_factor_s3 383.4008789 //382.7804565
+#define calibration_factor_s4 369.7872314 //396.9192505 
+#define calibration_factor_s5 391.1741333 //390.3388672 
 
 #define D1  14
 #define D2  26
@@ -227,7 +227,7 @@ void reportWeight(String * namesOfSensors, float * averageDataReadings)
 boolean noiseSpike(float prevReading, float currentReading, boolean noiseFlagTriggered)
 {
   
-  if((prevReading > MIN_READING_THRESH) && (abs(currentReading -  prevReading) > NOISE_SPIKE_THRESH) && !(noiseFlagTriggered))
+  if((abs(currentReading -  prevReading) > NOISE_SPIKE_THRESH) && !(noiseFlagTriggered))
   {
     return true;
   }
